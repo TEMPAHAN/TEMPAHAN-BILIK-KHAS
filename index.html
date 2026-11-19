@@ -51,6 +51,34 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #34d399;
         }
+
+        /* Gaya Khas Semasa Mencetak Laporan (Print / Save PDF) */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #report-view-modal, #report-view-modal * {
+                visibility: visible;
+            }
+            #report-view-modal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+                padding: 0 !important;
+                display: block !important;
+            }
+            #report-modal-card {
+                box-shadow: none !important;
+                border: none !important;
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
@@ -324,11 +352,15 @@
                         <h2 class="text-xl font-bold text-emerald-950">Rekod Penggunaan & Tempahan Makmal</h2>
                         <p class="text-sm text-slate-600 mt-0.5">Pantau semua data penggunaan yang telah direkodkan oleh guru (termasuk rekod lepas).</p>
                     </div>
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                        <div class="relative">
+                    <div class="flex flex-wrap items-stretch sm:items-center gap-2.5">
+                        <div class="relative flex-1 sm:flex-initial">
                             <i data-lucide="search" class="w-4 h-4 text-teal-600 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-                            <input type="text" id="search-input" onkeyup="renderRecordsTable()" placeholder="Cari nama guru / subjek..." class="pl-10 pr-4 py-2 rounded-xl border border-teal-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-64">
+                            <input type="text" id="search-input" onkeyup="renderRecordsTable()" placeholder="Cari nama guru / subjek..." class="pl-10 pr-4 py-2 rounded-xl border border-teal-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-60">
                         </div>
+                        <button onclick="openReportViewModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center justify-center gap-2">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                            <span>Papar Laporan (View)</span>
+                        </button>
                         <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center justify-center gap-2">
                             <i data-lucide="download" class="w-4 h-4"></i>
                             <span>Muat Turun CSV</span>
@@ -375,6 +407,87 @@
             <p>Disambungkan ke Google Sheets & Notifikasi Telegram untuk pemantauan berpusat.</p>
         </div>
     </footer>
+
+    <!-- MODAL PAPARAN LAPORAN RASMI (VIEW SAHAJA / SEDIA CETAK) -->
+    <div id="report-view-modal" onclick="if(event.target === this) closeReportViewModal()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-3 sm:p-6 overflow-y-auto">
+        <div id="report-modal-card" class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden fade-in border border-slate-200 my-auto">
+            <!-- Bar Alat Atas (Tidak Dicetak) -->
+            <div class="no-print bg-slate-800 text-white px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold">
+                    <i data-lucide="file-text" class="w-4 h-4 text-amber-400"></i>
+                    <span>Mod Paparan Laporan (View Sahaja)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition">
+                        <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                        <span>Cetak / Simpan PDF</span>
+                    </button>
+                    <button onclick="closeReportViewModal()" class="bg-white/15 hover:bg-white/25 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        <span>Tutup</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Kandungan Laporan Rasmi -->
+            <div class="p-6 sm:p-8 max-h-[82vh] overflow-y-auto">
+                <!-- Kepala Surat / Header Laporan -->
+                <div class="border-b-2 border-emerald-800 pb-4 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-12 h-12 rounded-xl border border-slate-200 p-1 flex items-center justify-center shrink-0 bg-white">
+                            <img src="LOGO%20SEKOLAH.png" 
+                                 onerror="this.style.display='none';"
+                                 alt="Logo" class="w-full h-full object-contain">
+                        </div>
+                        <div>
+                            <h2 class="text-lg sm:text-xl font-bold text-slate-900 uppercase">Sekolah Kebangsaan Upin Ipin</h2>
+                            <p class="text-xs sm:text-sm font-semibold text-emerald-800">Rekod Penggunaan & Tempahan Makmal Komputer</p>
+                        </div>
+                    </div>
+                    <div class="text-left sm:text-right text-xs text-slate-500 space-y-0.5">
+                        <p>Tarikh Paparan: <strong id="report-generated-date" class="text-slate-700">-</strong></p>
+                        <p>Jumlah Rekod Dipapar: <strong id="report-total-records" class="text-emerald-700">0</strong></p>
+                        <p id="report-filter-note" class="hidden text-indigo-600 font-medium"></p>
+                    </div>
+                </div>
+
+                <!-- Jadual Laporan Bersih -->
+                <div class="overflow-x-auto border border-slate-300 rounded-lg">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-300 text-slate-800 font-bold">
+                                <th class="py-2.5 px-3 border-r border-slate-300 w-10 text-center">Bil</th>
+                                <th class="py-2.5 px-3 border-r border-slate-300">Tarikh Guna</th>
+                                <th class="py-2.5 px-3 border-r border-slate-300">Masa Penggunaan</th>
+                                <th class="py-2.5 px-3 border-r border-slate-300">Nama Guru</th>
+                                <th class="py-2.5 px-3 border-r border-slate-300">Mata Pelajaran</th>
+                                <th class="py-2.5 px-3">Kelas / Tujuan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="report-table-body" class="divide-y divide-slate-200">
+                            <!-- Dijana oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Bahagian Tandatangan Pengesahan (Untuk Cetakan Rasmi) -->
+                <div class="mt-8 pt-4 grid grid-cols-2 gap-8 text-xs text-slate-600">
+                    <div>
+                        <p>Disediakan oleh:</p>
+                        <div class="h-12 border-b border-dashed border-slate-400 w-48 mt-2"></div>
+                        <p class="font-semibold text-slate-800 mt-1">Penyelaras Makmal Komputer / ICT</p>
+                        <p>SK Upin Ipin</p>
+                    </div>
+                    <div>
+                        <p>Disahkan oleh:</p>
+                        <div class="h-12 border-b border-dashed border-slate-400 w-48 mt-2"></div>
+                        <p class="font-semibold text-slate-800 mt-1">Guru Besar / PK Pentadbiran</p>
+                        <p>SK Upin Ipin</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL POP-UP MAKLUMAT TEMPAHAN PADA TARIKH KALENDAR YANG DIKLIK -->
     <div id="date-info-modal" onclick="if(event.target === this) closeDateInfoModal()" class="fixed inset-0 bg-slate-900/55 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
@@ -750,7 +863,6 @@
             }
         }
 
-        // Kaedah sandaran JSONP jika fetch disekat oleh pelayar / iFrame
         function fetchBookingsViaJSONP() {
             return new Promise((resolve, reject) => {
                 const callbackName = 'gsCallback_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
@@ -798,7 +910,6 @@
                     const textResponse = await response.text();
                     result = JSON.parse(textResponse);
                 } catch (fetchErr) {
-                    // Cuba kaedah sandaran JSONP jika fetch disekat dalam pratonton/pelayar
                     result = await fetchBookingsViaJSONP();
                 }
 
@@ -956,20 +1067,23 @@
             document.getElementById('class-note').value = '';
         }
 
-        function renderRecordsTable() {
-            const tbody = document.getElementById('records-table-body');
-            const emptyState = document.getElementById('empty-records-state');
+        function getFilteredSortedBookings() {
             const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
-
             const sortedBookings = [...bookings].sort((a, b) => b.date.localeCompare(a.date));
 
-            const filtered = sortedBookings.filter(b => 
+            return sortedBookings.filter(b => 
                 b.teacher.toLowerCase().includes(searchQuery) ||
                 b.subject.toLowerCase().includes(searchQuery) ||
                 b.time.toLowerCase().includes(searchQuery) ||
                 b.date.includes(searchQuery) ||
                 (b.classNote && b.classNote.toLowerCase().includes(searchQuery))
             );
+        }
+
+        function renderRecordsTable() {
+            const tbody = document.getElementById('records-table-body');
+            const emptyState = document.getElementById('empty-records-state');
+            const filtered = getFilteredSortedBookings();
 
             if (filtered.length === 0) {
                 tbody.innerHTML = '';
@@ -1016,6 +1130,52 @@
                 `;
             }).join('');
             lucide.createIcons();
+        }
+
+        // =========================================================================
+        // MODAL PAPARAN LAPORAN (VIEW SAHAJA / SEDIA CETAK)
+        // =========================================================================
+        function openReportViewModal() {
+            const filtered = getFilteredSortedBookings();
+            if (filtered.length === 0) {
+                showToast("Tiada rekod untuk dipaparkan dalam laporan.", "error");
+                return;
+            }
+
+            const searchQuery = document.getElementById('search-input').value.trim();
+            const filterNote = document.getElementById('report-filter-note');
+            if (searchQuery) {
+                filterNote.textContent = `Tapisan Carian: "${searchQuery}"`;
+                filterNote.classList.remove('hidden');
+            } else {
+                filterNote.classList.add('hidden');
+            }
+
+            document.getElementById('report-generated-date').textContent = formatDateDisplay(TODAY_STR);
+            document.getElementById('report-total-records').textContent = `${filtered.length} Rekod`;
+
+            const tbody = document.getElementById('report-table-body');
+            tbody.innerHTML = filtered.map((b, index) => `
+                <tr class="${index % 2 === 1 ? 'bg-slate-50/70' : 'bg-white'}">
+                    <td class="py-2 px-3 border-r border-slate-300 text-center font-medium text-slate-600">${index + 1}</td>
+                    <td class="py-2 px-3 border-r border-slate-300 font-semibold text-slate-800 whitespace-nowrap">${escapeHTML(formatDateDisplay(b.date))}</td>
+                    <td class="py-2 px-3 border-r border-slate-300 text-slate-800 whitespace-nowrap">${escapeHTML(b.time)}</td>
+                    <td class="py-2 px-3 border-r border-slate-300 font-medium text-slate-800">${escapeHTML(b.teacher)}</td>
+                    <td class="py-2 px-3 border-r border-slate-300 text-slate-700">${escapeHTML(b.subject)}</td>
+                    <td class="py-2 px-3 text-slate-600">${b.classNote ? escapeHTML(b.classNote) : '-'}</td>
+                </tr>
+            `).join('');
+
+            const modal = document.getElementById('report-view-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeReportViewModal() {
+            const modal = document.getElementById('report-view-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
 
         // =========================================================================
@@ -1183,33 +1343,47 @@
         }
 
         function exportToCSV() {
-            if (bookings.length === 0) {
+            const filtered = getFilteredSortedBookings();
+            if (filtered.length === 0) {
                 showToast("Tiada rekod untuk dimuat turun.", "error");
                 return;
             }
 
-            const headers = ["Tarikh Guna", "Masa Penggunaan", "Nama Guru", "Mata Pelajaran", "Kelas / Catatan", "Tarikh Ditempah"];
-            const rows = bookings.map(b => [
-                `"${b.date}"`,
+            const headers = ["Bil", "Tarikh Guna", "Masa Penggunaan", "Nama Guru", "Mata Pelajaran", "Kelas / Catatan", "Tarikh Ditempah"];
+            const rows = filtered.map((b, idx) => [
+                `"${idx + 1}"`,
+                `"${formatDateDisplay(b.date).replace(/"/g, '""')}"`,
                 `"${b.time.replace(/"/g, '""')}"`,
                 `"${b.teacher.replace(/"/g, '""')}"`,
                 `"${b.subject.replace(/"/g, '""')}"`,
-                `"${(b.classNote || '').replace(/"/g, '""')}"`,
+                `"${(b.classNote || '-').replace(/"/g, '""')}"`,
                 `"${formatBookedTimestamp(b)}"`
             ]);
 
-            const csvContent = "data:text/csv;charset=utf-8," 
-                + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+            // Tambah \uFEFF (UTF-8 BOM) supaya Excel & telefon memaparkan aksara dengan tepat
+            const csvString = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\r\n");
+            const filename = `Rekod_Makmal_Komputer_SK_Upin_Ipin_${TODAY_STR}.csv`;
 
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Rekod_Makmal_Komputer_SK_Upin_Ipin_${TODAY_STR}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            try {
+                const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = filename;
+                link.style.display = "none";
+                document.body.appendChild(link);
+                link.click();
 
-            showToast("Fail laporan CSV berjaya dimuat turun.", "success");
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                }, 1000);
+
+                showToast("Fail laporan CSV berjaya dimuat turun! Semak folder 'Downloads'.", "success");
+            } catch (err) {
+                console.error("Ralat CSV:", err);
+                showToast("Pelayar menyekat muat turun terus. Sila guna butang 'Papar Laporan (View)' > 'Cetak / Simpan PDF'.", "error");
+            }
         }
 
         function showToast(message, type = "success") {
@@ -1235,7 +1409,7 @@
                 toast.style.opacity = '0';
                 toast.style.transition = 'opacity 0.3s ease';
                 setTimeout(() => toast.remove(), 300);
-            }, 3200);
+            }, 3500);
         }
 
         function escapeHTML(str) {
