@@ -512,7 +512,7 @@
         // =========================================================================
         // PAUTAN WEB APP GOOGLE APPS SCRIPT - SEKOLAH KEBANGSAAN UPIN IPIN
         // =========================================================================
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8H_rzQbtbsXqS91_4At-VCCkTk5nUB66S_eMF-rHPVJj6TU0GAufrQZBHNytuLjCd8g/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhOuJegUS5U_lvewKZ9CArzxOqHkfaG3ZnWI89ZhkK_O3aCBtWU5U2VKFVqv3-8WSM_Q/exec";
 
         const MONTH_NAMES = [
             "Januari", "Februari", "Mac", "April", "Mei", "Jun",
@@ -750,16 +750,59 @@
             }
         }
 
+        // Kaedah sandaran JSONP jika fetch disekat oleh pelayar / iFrame
+        function fetchBookingsViaJSONP() {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'gsCallback_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                const script = document.createElement('script');
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    reject(new Error("Masa tamat menyambung ke Google Sheets."));
+                }, 10000);
+
+                function cleanup() {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                }
+
+                window[callbackName] = function(data) {
+                    cleanup();
+                    resolve(data);
+                };
+
+                script.onerror = function() {
+                    cleanup();
+                    reject(new Error("Gagal memuatkan skrip Google Sheets."));
+                };
+
+                script.src = `${GOOGLE_SCRIPT_URL}?action=get&callback=${callbackName}&t=${Date.now()}`;
+                document.body.appendChild(script);
+            });
+        }
+
         async function fetchBookingsFromSheet(showNotification = false) {
             const refreshIcon = document.getElementById('refresh-icon');
             if (refreshIcon) refreshIcon.classList.add('animate-spin');
             updateSyncStatus('loading', 'Menyegerak data...');
 
             try {
-                const response = await fetch(GOOGLE_SCRIPT_URL);
-                const result = await response.json();
+                let result = null;
+                try {
+                    const fetchUrl = `${GOOGLE_SCRIPT_URL}?action=get&t=${Date.now()}`;
+                    const response = await fetch(fetchUrl, {
+                        method: "GET",
+                        redirect: "follow"
+                    });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const textResponse = await response.text();
+                    result = JSON.parse(textResponse);
+                } catch (fetchErr) {
+                    // Cuba kaedah sandaran JSONP jika fetch disekat dalam pratonton/pelayar
+                    result = await fetchBookingsViaJSONP();
+                }
 
-                if (result.status === "success" && Array.isArray(result.bookings)) {
+                if (result && result.status === "success" && Array.isArray(result.bookings)) {
                     bookings = result.bookings;
                     updateSyncStatus('connected', 'Disambung ke Google Sheets');
                     updateAllViews();
@@ -767,13 +810,13 @@
                         showToast("Data berjaya dikemaskini dari Google Sheets.", "success");
                     }
                 } else {
-                    throw new Error("Format data tidak sah");
+                    throw new Error((result && result.message) || "Format data tidak sah");
                 }
             } catch (error) {
                 console.error("Ralat Google Sheets:", error);
                 updateSyncStatus('error', 'Ralat Sambungan Sheets');
                 if (showNotification) {
-                    showToast("Gagal menyambung ke Google Sheets. Sila semak internet.", "error");
+                    showToast("Gagal menyambung. Pastikan URL Web App & akses 'Anyone' adalah tepat.", "error");
                 }
             } finally {
                 if (refreshIcon) refreshIcon.classList.remove('animate-spin');
